@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  hashedPassword String?
+  image         String?
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  addresses     Address[]
+  orders        Order[]
+  reviews       Review[]
+  wishlist      Wishlist?
+  cart          Cart?
+}
+
+model Book {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  description   String
+  isbn          String    @unique
+  sku           String    @unique
+  language      String
+  pages         Int?
+  edition       String?
+  publicationDate DateTime?
+  price         Float
+  mrp           Float?
+  stock         Int      @default(0)
+  coverImage    String?
+  gallery       String[]
+  rating        Float    @default(0)
+  totalReviews  Int      @default(0)
+  publisher     Publisher? @relation(fields: [publisherId], references: [id])
+  publisherId   String?
+  author        Author?   @relation(fields: [authorId], references: [id])
+  authorId      String?
+  categories    Category[] @relation(references: [id])
+  reviews       Review[]
+  orderItems    OrderItem[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Category {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+  books Book[]
+}
+
+model Author {
+  id    String @id @default(cuid())
+  name  String
+  bio   String?
+  slug  String @unique
+  books Book[]
+}
+
+model Publisher {
+  id    String @id @default(cuid())
+  name  String
+  slug  String @unique
+  books Book[]
+}
+
+model Order {
+  id         String    @id @default(cuid())
+  user       User      @relation(fields: [userId], references: [id])
+  userId     String
+  items      OrderItem[]
+  subtotal   Float
+  shipping   Float
+  tax        Float
+  total      Float
+  status     OrderStatus @default(PENDING)
+  trackingId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  address    Address? @relation(fields: [addressId], references: [id])
+  addressId  String?
+  payment    Payment?
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  order     Order  @relation(fields: [orderId], references: [id])
+  orderId   String
+  book      Book   @relation(fields: [bookId], references: [id])
+  bookId    String
+  quantity  Int
+  unitPrice Float
+  total     Float
+}
+
+model Cart {
+  id       String @id @default(cuid())
+  user     User?  @relation(fields: [userId], references: [id])
+  userId   String?
+  items    CartItem[]
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id       String @id @default(cuid())
+  cart     Cart   @relation(fields: [cartId], references: [id])
+  cartId   String
+  book     Book   @relation(fields: [bookId], references: [id])
+  bookId   String
+  quantity Int
+}
+
+model Wishlist {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  books  Book[] @relation(references: [id])
+}
+
+model Review {
+  id       String @id @default(cuid())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String
+  book     Book   @relation(fields: [bookId], references: [id])
+  bookId   String
+  rating   Int
+  title    String?
+  body     String
+  createdAt DateTime @default(now())
+}
+
+model Coupon {
+  id        String @id @default(cuid())
+  code      String @unique
+  type      CouponType
+  value     Float
+  maxUsage  Int?
+  expiresAt DateTime?
+  active    Boolean @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Address {
+  id        String @id @default(cuid())
+  user      User   @relation(fields: [userId], references: [id])
+  userId    String
+  name      String
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  country   String
+  postalCode String
+  phone     String
+  primary   Boolean @default(false)
+}
+
+model Payment {
+  id         String @id @default(cuid())
+  order      Order  @relation(fields: [orderId], references: [id])
+  orderId    String
+  method     String
+  providerId String?
+  status     String
+  amount     Float
+  createdAt  DateTime @default(now())
+}
+
+model Notification {
+  id        String @id @default(cuid())
+  user      User?  @relation(fields: [userId], references: [id])
+  userId    String?
+  title     String
+  body      String
+  read      Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
+}
